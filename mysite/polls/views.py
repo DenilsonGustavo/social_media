@@ -1,3 +1,4 @@
+from itertools import chain
 from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.contrib.auth.models import User, auth
@@ -13,8 +14,21 @@ def index(request):
     user_object = User.objects.get(username=request.user.username)
     user_profile = Profile.objects.get(user=user_object)
 
+    user_following_list = []
+    feed = []
+
+    user_following = FollowersCount.objects.filter(follower=request.user.username)
+
+    for users in user_following:
+        user_following_list.append(users.user)
+    for usernames in user_following_list:
+        feed_lists = Post.objects.filter(user=usernames)
+        feed.append(feed_lists)
+    feed_list = list(chain(*feed))
+
     posts = Post.objects.all()
-    return render(request, 'index.html', {'posts': posts, 'user_profile': user_profile})
+
+    return render(request, 'index.html', {'posts': feed_list, 'user_profile': user_profile})
 
 @login_required(login_url='signin')
 def like_post(request):
@@ -95,7 +109,9 @@ def upload(request):
         return render(request, 'index.html')  # Adicionando renderização após a criação do post
     else:
         return render(request, 'index.html')  # Renderizando a página de upload mesmo para métodos diferentes de POST
-
+@login_required(login_url='signin')
+def search(request):
+    return render(request,'search.html')
 @login_required(login_url='signin')
 def settings(request):
     user_profile = Profile.objects.get(user=request.user)
